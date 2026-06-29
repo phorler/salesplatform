@@ -69,6 +69,26 @@
                 </div>
             </div>
 
+            {{-- Amazon market (Keepa) --}}
+            @if ($item->product->latestObservation)
+                @php $obs = $item->product->latestObservation; @endphp
+                <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-gray-800">{{ __('Amazon market') }}</h3>
+                        <span class="text-xs text-gray-400">{{ __('via Keepa · as of') }} {{ $obs->observed_at?->diffForHumans() }}</span>
+                    </div>
+                    <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                        <div><dt class="text-gray-500">{{ __('Lowest new') }}</dt><dd>{{ $obs->new_price !== null ? '£'.number_format($obs->new_price, 2) : '—' }}</dd></div>
+                        <div><dt class="text-gray-500">{{ __('Lowest used') }}</dt><dd>{{ $obs->used_price !== null ? '£'.number_format($obs->used_price, 2) : '—' }}</dd></div>
+                        <div><dt class="text-gray-500">{{ __('Sales rank') }}</dt><dd>{{ $obs->sales_rank !== null ? '#'.number_format($obs->sales_rank) : '—' }}</dd></div>
+                        <div><dt class="text-gray-500">{{ __('Your list') }}</dt><dd>{{ $item->list_price !== null ? '£'.number_format($item->list_price, 2) : '—' }}</dd></div>
+                    </dl>
+                    @if ($item->list_price !== null && $obs->used_price !== null && $item->list_price > $obs->used_price)
+                        <p class="mt-3 text-xs text-amber-700">{{ __('Your price is above the lowest used offer — consider Live price to undercut.') }}</p>
+                    @endif
+                </div>
+            @endif
+
             {{-- Marketplace actions --}}
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <div class="flex items-center justify-between mb-3">

@@ -62,6 +62,22 @@ config (`https://salesplatform.horler.net/marketplace/amazon/callback`).
 > product type) are best-effort and should be validated against the SP-API sandbox
 > before live submission.
 
+## Pricing data (Keepa)
+
+While SP-API access is pending (or alongside it), competitive pricing and market
+monitoring use [Keepa](https://keepa.com/#!api) — a ToS-safe Amazon price source
+(no scraping). Set in `.env`:
+
+```
+KEEPA_API_KEY=        # your Keepa API key
+KEEPA_DOMAIN=2        # 2 = amazon.co.uk
+```
+
+Then the **Live price** button on an item undercuts the lowest competitive price,
+and `keepa:refresh-prices` (scheduled daily) records lowest new/used + sales rank
+into a price history shown on the item page. Without a key these features stay
+dormant (manual pricing still works).
+
 ## Testing
 
 ```bash

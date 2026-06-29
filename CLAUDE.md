@@ -26,8 +26,13 @@ to `sales`.
   resolved by `ChannelManager` from `config/channels.php`. `AmazonChannel` is the
   only impl. Services/jobs/UI never touch Amazon directly.
 - `App\Services\Pricing\PricingStrategy` — `ManualMultiplierStrategy` (reference
-  price × per-condition multiplier) and `CompetitivePricingStrategy` (live Amazon).
-  Resolved by `PricingService` from `config/pricing.php`.
+  price × per-condition multiplier), `KeepaPricingStrategy` (live Amazon prices
+  via Keepa, ISBN-based — no seller account needed), and `CompetitivePricingStrategy`
+  (live Amazon via SP-API). Resolved by `PricingService` from `config/pricing.php`.
+- Market monitoring: `KeepaClient` + `keepa:refresh-prices` (scheduled daily)
+  snapshot lowest new/used + sales rank into `price_observations` per book; shown
+  on the item page. Needs `KEEPA_API_KEY`. The "Live price" button prefers Keepa
+  when configured, else falls back to SP-API.
 - `App\Models\Concerns\BelongsToUser` — row-level multi-seller isolation (global
   scope + auto user_id). **No scope in queue/console context** — jobs scope
   explicitly by account/user.

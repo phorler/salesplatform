@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Keepa — Amazon book pricing data (ToS-safe alternative to SP-API/scraping).
+    // domain: 1 = .com, 2 = .co.uk, 3 = .de … (match your marketplace).
+    'keepa' => [
+        'key' => env('KEEPA_API_KEY'),
+        'domain' => env('KEEPA_DOMAIN', 2),
+    ],
+
 ];

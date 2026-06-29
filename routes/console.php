@@ -12,3 +12,9 @@ Artisan::command('inspire', function () {
 Schedule::command('marketplace:sync-orders')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
+
+// Snapshot Amazon market prices (via Keepa) for in-stock books daily. Self-skips
+// when Keepa isn't configured. Token-conservative; raise frequency if needed.
+Schedule::command('keepa:refresh-prices')
+    ->dailyAt('06:00')
+    ->withoutOverlapping();

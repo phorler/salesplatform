@@ -6,6 +6,7 @@ use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Global catalog entry for a book, keyed by ISBN-13. Not user-scoped.
@@ -32,6 +33,16 @@ class Product extends Model
     public function inventoryItems(): HasMany
     {
         return $this->hasMany(InventoryItem::class);
+    }
+
+    public function priceObservations(): HasMany
+    {
+        return $this->hasMany(PriceObservation::class);
+    }
+
+    public function latestObservation(): HasOne
+    {
+        return $this->hasOne(PriceObservation::class)->latestOfMany('observed_at');
     }
 
     public function authorLine(): string

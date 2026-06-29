@@ -172,7 +172,7 @@ class InventoryItemController extends Controller
 
     public function show(InventoryItem $inventoryItem): View
     {
-        $inventoryItem->load('product', 'listings.marketplaceAccount', 'sales');
+        $inventoryItem->load('product.latestObservation', 'listings.marketplaceAccount', 'sales');
 
         return view('inventory.show', ['item' => $inventoryItem]);
     }

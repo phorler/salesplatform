@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Pricing\CompetitivePricingStrategy;
+use App\Services\Pricing\KeepaPricingStrategy;
 use App\Services\Pricing\ManualMultiplierStrategy;
 
 return [
@@ -21,6 +22,7 @@ return [
     'strategies' => [
         ManualMultiplierStrategy::KEY => ManualMultiplierStrategy::class,
         CompetitivePricingStrategy::KEY => CompetitivePricingStrategy::class,
+        KeepaPricingStrategy::KEY => KeepaPricingStrategy::class,
     ],
 
 ];
