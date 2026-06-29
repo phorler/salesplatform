@@ -20,7 +20,9 @@ const CONSTRAINTS = {
     },
     audio: false,
 };
-const REQUIRED_CONFIRMATIONS = 2;
+// One valid read is enough: the 978/979 prefix + EAN-13 checksum make a single
+// accept safe, and waiting for repeats made it feel like it wasn't scanning.
+const REQUIRED_CONFIRMATIONS = 1;
 
 function digitsOnly(raw) {
     return (raw || '').replace(/\D/g, '');
@@ -55,11 +57,12 @@ export class BarcodeScanner {
         return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     }
 
-    async start(video, onDetect) {
+    async start(video, onDetect, onStatus) {
         this.running = true;
         this.candidate = null;
         this.count = 0;
         this.onDetect = onDetect;
+        this.onStatus = onStatus;
 
         if ('BarcodeDetector' in window) {
             await this._startNative(video);
@@ -70,18 +73,20 @@ export class BarcodeScanner {
 
     // Returns true once a confirmed ISBN has been accepted.
     _consider(raw) {
-        if (!isBookIsbn(raw)) {
+        const digits = digitsOnly(raw);
+        const ok = isBookIsbn(digits);
+        if (this.onStatus) this.onStatus(digits, ok);
+        if (!ok) {
             return false;
         }
-        const isbn = digitsOnly(raw);
-        if (isbn === this.candidate) {
+        if (digits === this.candidate) {
             this.count += 1;
         } else {
-            this.candidate = isbn;
+            this.candidate = digits;
             this.count = 1;
         }
         if (this.count >= REQUIRED_CONFIRMATIONS && this.running) {
-            this.onDetect(isbn);
+            this.onDetect(digits);
             return true;
         }
         return false;

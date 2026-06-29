@@ -35,6 +35,7 @@
                             <div class="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-red-500/80"></div>
                         </div>
                         <p class="text-white text-sm mt-4">{{ __('Scan the main barcode (the one starting 978/979). Hold steady.') }}</p>
+                        <p class="text-white/70 text-xs mt-1 font-mono" x-show="scanStatus" x-text="scanStatus"></p>
                         <p class="text-red-300 text-sm mt-1" x-show="scanError" x-text="scanError"></p>
                         <button type="button" @click="stopScan()"
                                 class="mt-4 px-4 py-2 bg-white/90 rounded-md text-sm font-medium">
@@ -132,16 +133,20 @@
             return {
                 isbn: '', loading: false, error: '', found: false, book: {},
                 condition: 'good', referencePrice: null, listPrice: null,
-                scanning: false, scanError: '', scanner: null,
+                scanning: false, scanError: '', scanStatus: '', scanner: null,
                 canScan: window.BarcodeScanner && window.BarcodeScanner.isSupported(),
                 async startScan() {
-                    this.scanError = ''; this.scanning = true;
+                    this.scanError = ''; this.scanStatus = ''; this.scanning = true;
                     this.scanner = new window.BarcodeScanner();
                     try {
                         await this.scanner.start(this.$refs.video, (code) => {
                             this.isbn = code;
                             this.stopScan();
                             this.lookup();
+                        }, (raw, ok) => {
+                            this.scanStatus = ok
+                                ? ('Reading ' + raw + '…')
+                                : (raw ? ('Saw ' + raw + ' — not a book barcode; aim at the 978 code') : '');
                         });
                     } catch (e) {
                         if (e && e.name === 'NotAllowedError') {
