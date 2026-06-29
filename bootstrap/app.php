@@ -11,7 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Behind the Caddy reverse proxy (TLS terminated there). Trust the
+        // forwarded headers so generated URLs use the correct https scheme —
+        // otherwise assets on the https domain are http and blocked as mixed
+        // content. LAN access over plain http still generates http URLs.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
