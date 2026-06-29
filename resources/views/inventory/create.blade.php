@@ -144,9 +144,13 @@
                             this.lookup();
                         });
                     } catch (e) {
-                        this.scanError = (e && e.name === 'NotAllowedError')
-                            ? 'Camera permission denied.'
-                            : 'Could not start the camera. On a phone, use the https address.';
+                        if (e && e.name === 'NotAllowedError') {
+                            this.scanError = 'Camera permission denied.';
+                        } else if (!window.isSecureContext) {
+                            this.scanError = 'Camera needs a secure (https) connection.';
+                        } else {
+                            this.scanError = 'Could not start the camera: ' + (e?.message || e?.name || 'unknown error');
+                        }
                     }
                 },
                 stopScan() {
