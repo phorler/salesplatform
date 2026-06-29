@@ -3,26 +3,14 @@
 // Uses the native BarcodeDetector API where available (Android Chrome, etc.),
 // and lazily loads @zxing/library as a fallback (desktop browsers / iOS Safari).
 //
-// Reliability measures, because books carry a second (price/currency) barcode and
-// single-frame reads misfire:
-//   - only accept a valid book ISBN (13 digits, 978/979 prefix, good checksum)
-//     so the price barcode and garbage reads are ignored;
-//   - require the same value on two consecutive reads before accepting.
+// Decoding uses the broad, known-working format set; we then *filter* to a valid
+// book ISBN (13 digits, 978/979 prefix, good checksum) so the price/currency
+// barcode and misreads are ignored. A live status callback reports what's seen.
 //
 // NOTE: getUserMedia requires a secure context (HTTPS or localhost).
 
-const FORMATS = ['ean_13'];
-const CONSTRAINTS = {
-    video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-    },
-    audio: false,
-};
-// One valid read is enough: the 978/979 prefix + EAN-13 checksum make a single
-// accept safe, and waiting for repeats made it feel like it wasn't scanning.
-const REQUIRED_CONFIRMATIONS = 1;
+const NATIVE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+const CONSTRAINTS = { video: { facingMode: { ideal: 'environment' } }, audio: false };
 
 function digitsOnly(raw) {
     return (raw || '').replace(/\D/g, '');
@@ -49,8 +37,6 @@ export class BarcodeScanner {
         this.zxing = null;
         this.raf = null;
         this.running = false;
-        this.candidate = null;
-        this.count = 0;
     }
 
     static isSupported() {
@@ -59,10 +45,8 @@ export class BarcodeScanner {
 
     async start(video, onDetect, onStatus) {
         this.running = true;
-        this.candidate = null;
-        this.count = 0;
         this.onDetect = onDetect;
-        this.onStatus = onStatus;
+        this.onStatus = onStatus || (() => {});
 
         if ('BarcodeDetector' in window) {
             await this._startNative(video);
@@ -71,21 +55,12 @@ export class BarcodeScanner {
         }
     }
 
-    // Returns true once a confirmed ISBN has been accepted.
+    // Reports every decode; accepts the first valid book ISBN.
     _consider(raw) {
         const digits = digitsOnly(raw);
         const ok = isBookIsbn(digits);
-        if (this.onStatus) this.onStatus(digits, ok);
-        if (!ok) {
-            return false;
-        }
-        if (digits === this.candidate) {
-            this.count += 1;
-        } else {
-            this.candidate = digits;
-            this.count = 1;
-        }
-        if (this.count >= REQUIRED_CONFIRMATIONS && this.running) {
+        this.onStatus(digits, ok);
+        if (ok && this.running) {
             this.onDetect(digits);
             return true;
         }
@@ -98,17 +73,12 @@ export class BarcodeScanner {
         video.setAttribute('playsinline', 'true');
         await video.play();
 
-        // Best-effort continuous autofocus for sharper reads.
-        try {
-            await this.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-        } catch { /* unsupported; ignore */ }
-
-        let formats = FORMATS;
+        let formats = NATIVE_FORMATS;
         try {
             const supported = await window.BarcodeDetector.getSupportedFormats();
-            formats = FORMATS.filter((f) => supported.includes(f));
-            if (formats.length === 0) formats = ['ean_13'];
-        } catch { /* use default */ }
+            const filtered = NATIVE_FORMATS.filter((f) => supported.includes(f));
+            if (filtered.length) formats = filtered;
+        } catch { /* use default list */ }
         this.detector = new window.BarcodeDetector({ formats });
 
         const tick = async () => {
@@ -128,8 +98,12 @@ export class BarcodeScanner {
         const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library');
 
         const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13]);
-        hints.set(DecodeHintType.TRY_HARDER, true);
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+            BarcodeFormat.EAN_13,
+            BarcodeFormat.EAN_8,
+            BarcodeFormat.UPC_A,
+            BarcodeFormat.UPC_E,
+        ]);
 
         this.zxing = new BrowserMultiFormatReader(hints);
         await this.zxing.decodeFromConstraints(CONSTRAINTS, video, (result) => {
