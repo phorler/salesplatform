@@ -97,44 +97,6 @@
                 </div>
             @endif
 
-            {{-- Marketplace actions --}}
-            <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold text-gray-800">{{ __('Marketplace listings') }}</h3>
-                    <div class="flex gap-2">
-                        <form method="POST" action="{{ route('listings.refresh-price', $item) }}">
-                            @csrf
-                            <button class="px-3 py-2 text-xs font-semibold uppercase tracking-widest border border-gray-300 rounded-md hover:bg-gray-50">{{ __('Live price') }}</button>
-                        </form>
-                        <form method="POST" action="{{ route('listings.publish', $item) }}"
-                              onsubmit="return confirm('Publish this item to Amazon?');">
-                            @csrf
-                            <button class="px-3 py-2 text-xs font-semibold uppercase tracking-widest bg-[#ff9900] text-gray-900 rounded-md hover:bg-amber-400">{{ __('Publish to Amazon') }}</button>
-                        </form>
-                    </div>
-                </div>
-                @forelse ($item->listings as $listing)
-                    <div class="flex items-center justify-between py-2 border-b last:border-0 text-sm">
-                        <div>
-                            {{ ucfirst($listing->channel) }}
-                            @if ($listing->external_id) · <span class="font-mono text-xs">{{ $listing->external_id }}</span> @endif
-                            @if ($listing->listed_price) · £{{ number_format($listing->listed_price, 2) }} @endif
-                        </div>
-                        <span @class([
-                            'inline-flex px-2 py-0.5 rounded-full text-xs',
-                            'bg-green-100 text-green-700' => $listing->status === \App\Enums\ListingStatus::Active,
-                            'bg-amber-100 text-amber-700' => $listing->status === \App\Enums\ListingStatus::Pending,
-                            'bg-red-100 text-red-700' => $listing->status === \App\Enums\ListingStatus::Error,
-                            'bg-gray-100 text-gray-600' => ! in_array($listing->status, [\App\Enums\ListingStatus::Active, \App\Enums\ListingStatus::Pending, \App\Enums\ListingStatus::Error]),
-                        ])>{{ $listing->status->label() }}</span>
-                    </div>
-                    @if ($listing->status === \App\Enums\ListingStatus::Error && $listing->issues)
-                        <p class="text-xs text-red-600 pb-2">{{ collect($listing->issues)->pluck('message')->filter()->implode('; ') }}</p>
-                    @endif
-                @empty
-                    <p class="text-sm text-gray-500">{{ __('Not listed anywhere yet.') }}</p>
-                @endforelse
-            </div>
         </div>
     </div>
 </x-app-layout>
