@@ -1,0 +1,112 @@
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $item->product->title }}</h2>
+            <div class="flex gap-2">
+                <a href="{{ route('inventory.edit', $item) }}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-800 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                    {{ __('Edit') }}
+                </a>
+                <form method="POST" action="{{ route('inventory.destroy', $item) }}"
+                      onsubmit="return confirm('Remove this item from inventory?');">
+                    @csrf @method('DELETE')
+                    <button class="inline-flex items-center px-4 py-2 bg-red-600 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500">
+                        {{ __('Delete') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </x-slot>
+
+    <div class="py-8">
+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            @if (session('status'))
+                <div class="px-4 py-3 bg-green-100 border border-green-200 text-green-800 rounded-md text-sm">
+                    {{ session('status') }}
+                </div>
+            @endif
+            @foreach (['publish', 'price'] as $errKey)
+                @error($errKey)
+                    <div class="px-4 py-3 bg-red-100 border border-red-200 text-red-800 rounded-md text-sm">{{ $message }}</div>
+                @enderror
+            @endforeach
+
+            <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <div class="flex gap-6">
+                    @if ($item->product->cover_url)
+                        <img src="{{ $item->product->cover_url }}" alt="" class="w-28 h-auto rounded shadow" />
+                    @endif
+                    <div class="flex-1">
+                        <div class="text-lg font-semibold text-gray-900">{{ $item->product->title }}</div>
+                        @if ($item->product->subtitle)
+                            <div class="text-gray-600">{{ $item->product->subtitle }}</div>
+                        @endif
+                        <div class="text-gray-700 mt-1">{{ $item->product->authorLine() }}</div>
+                        <div class="text-gray-500 text-sm mt-1">
+                            {{ $item->product->publisher }}
+                            @if ($item->product->published_year) · {{ $item->product->published_year }} @endif
+                            · ISBN {{ $item->product->isbn13 }}
+                        </div>
+
+                        <dl class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6 text-sm">
+                            <div><dt class="text-gray-500">{{ __('SKU') }}</dt><dd class="font-mono">{{ $item->sku }}</dd></div>
+                            <div><dt class="text-gray-500">{{ __('Condition') }}</dt><dd>{{ $item->condition->label() }}</dd></div>
+                            <div><dt class="text-gray-500">{{ __('Status') }}</dt><dd>{{ $item->status->label() }}</dd></div>
+                            <div><dt class="text-gray-500">{{ __('Quantity') }}</dt><dd>{{ $item->quantity }}</dd></div>
+                            <div><dt class="text-gray-500">{{ __('Cost') }}</dt><dd>{{ $item->cost !== null ? '£'.number_format($item->cost, 2) : '—' }}</dd></div>
+                            <div><dt class="text-gray-500">{{ __('Suggested') }}</dt><dd>{{ $item->suggested_price !== null ? '£'.number_format($item->suggested_price, 2) : '—' }}</dd></div>
+                            <div><dt class="text-gray-500">{{ __('List price') }}</dt><dd>{{ $item->list_price !== null ? '£'.number_format($item->list_price, 2) : '—' }}</dd></div>
+                            <div><dt class="text-gray-500">{{ __('Location') }}</dt><dd>{{ $item->location ?: '—' }}</dd></div>
+                        </dl>
+
+                        @if ($item->condition_note)
+                            <p class="mt-4 text-sm"><span class="text-gray-500">{{ __('Condition note:') }}</span> {{ $item->condition_note }}</p>
+                        @endif
+                        @if ($item->notes)
+                            <p class="mt-2 text-sm"><span class="text-gray-500">{{ __('Notes:') }}</span> {{ $item->notes }}</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Marketplace actions --}}
+            <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-gray-800">{{ __('Marketplace listings') }}</h3>
+                    <div class="flex gap-2">
+                        <form method="POST" action="{{ route('listings.refresh-price', $item) }}">
+                            @csrf
+                            <button class="px-3 py-2 text-xs font-semibold uppercase tracking-widest border border-gray-300 rounded-md hover:bg-gray-50">{{ __('Live price') }}</button>
+                        </form>
+                        <form method="POST" action="{{ route('listings.publish', $item) }}"
+                              onsubmit="return confirm('Publish this item to Amazon?');">
+                            @csrf
+                            <button class="px-3 py-2 text-xs font-semibold uppercase tracking-widest bg-[#ff9900] text-gray-900 rounded-md hover:bg-amber-400">{{ __('Publish to Amazon') }}</button>
+                        </form>
+                    </div>
+                </div>
+                @forelse ($item->listings as $listing)
+                    <div class="flex items-center justify-between py-2 border-b last:border-0 text-sm">
+                        <div>
+                            {{ ucfirst($listing->channel) }}
+                            @if ($listing->external_id) · <span class="font-mono text-xs">{{ $listing->external_id }}</span> @endif
+                            @if ($listing->listed_price) · £{{ number_format($listing->listed_price, 2) }} @endif
+                        </div>
+                        <span @class([
+                            'inline-flex px-2 py-0.5 rounded-full text-xs',
+                            'bg-green-100 text-green-700' => $listing->status === \App\Enums\ListingStatus::Active,
+                            'bg-amber-100 text-amber-700' => $listing->status === \App\Enums\ListingStatus::Pending,
+                            'bg-red-100 text-red-700' => $listing->status === \App\Enums\ListingStatus::Error,
+                            'bg-gray-100 text-gray-600' => ! in_array($listing->status, [\App\Enums\ListingStatus::Active, \App\Enums\ListingStatus::Pending, \App\Enums\ListingStatus::Error]),
+                        ])>{{ $listing->status->label() }}</span>
+                    </div>
+                    @if ($listing->status === \App\Enums\ListingStatus::Error && $listing->issues)
+                        <p class="text-xs text-red-600 pb-2">{{ collect($listing->issues)->pluck('message')->filter()->implode('; ') }}</p>
+                    @endif
+                @empty
+                    <p class="text-sm text-gray-500">{{ __('Not listed anywhere yet.') }}</p>
+                @endforelse
+            </div>
+        </div>
+    </div>
+</x-app-layout>

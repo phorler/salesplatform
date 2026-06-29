@@ -1,0 +1,16 @@
+# Local-dev overrides. Use together with the base file:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+# Exposes MySQL on host port 3307 (not 3306) so it doesn't clash with other
+# apps' DBs on the shared .147 host.
+#
+# .147 deploys use the base file ONLY (see _deploy/deploy.py).
+#
+# NB: APP_ENV/APP_DEBUG are intentionally NOT set here. They live in .env
+# (APP_ENV=local). Injecting them as real container env vars would override
+# phpunit.xml's APP_ENV=testing (real env beats phpunit + .env), disabling
+# test-mode CSRF skipping and causing 419s on every POST in the test suite.
+
+services:
+  db:
+    ports:
+      - "3307:3306"

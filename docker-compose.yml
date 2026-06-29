@@ -1,0 +1,87 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sp_app
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sp
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sp_worker
+    restart: unless-stopped
+    # Processes listing-publish, status-poll and order-sync jobs.
+    command: ["php", "artisan", "queue:work", "--sleep=2", "--tries=3", "--timeout=120", "--max-time=3600"]
+    volumes:
+      - .:/var/www
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sp
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sp_scheduler
+    restart: unless-stopped
+    # Foreground schedule:work replaces a host crontab. Schedules (e.g. the
+    # marketplace:sync-orders run) live in routes/console.php.
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - .:/var/www
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sp
+
+  web:
+    image: nginx:alpine
+    container_name: sp_web
+    restart: unless-stopped
+    ports:
+      - "${APP_HOST_PORT:-8092}:80"
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - sp
+
+  db:
+    image: mysql:8.0
+    container_name: sp_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-sellingplatform}
+      MYSQL_USER: ${DB_USERNAME:-sellingplatform}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-sellingplatform_secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-sellingplatform_root_secret}
+    volumes:
+      - sp_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD:-sellingplatform_root_secret}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sp
+
+volumes:
+  sp_mysql_data:
+
+networks:
+  sp:
+    driver: bridge
