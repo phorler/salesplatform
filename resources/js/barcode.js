@@ -1,17 +1,44 @@
-// Camera barcode scanning for ISBNs (EAN-13 et al).
+// Camera barcode scanning for ISBNs (book EAN-13).
 //
-// Uses the native BarcodeDetector API where available (Android Chrome, etc.).
-// Elsewhere — desktop browsers, iOS Safari — it lazily loads @zxing/library and
-// lets ZXing own the camera via decodeFromConstraints (continuous scanning).
+// Uses the native BarcodeDetector API where available (Android Chrome, etc.),
+// and lazily loads @zxing/library as a fallback (desktop browsers / iOS Safari).
 //
-// NOTE: getUserMedia requires a secure context (HTTPS or localhost). Over plain
-// http://<lan-ip> the camera will not start — use the https hostname.
+// Reliability measures, because books carry a second (price/currency) barcode and
+// single-frame reads misfire:
+//   - only accept a valid book ISBN (13 digits, 978/979 prefix, good checksum)
+//     so the price barcode and garbage reads are ignored;
+//   - require the same value on two consecutive reads before accepting.
 //
-// Intentionally avoids `#private` methods: some Safari versions throw
-// "cannot access private method" on them. Underscore-prefixed methods instead.
+// NOTE: getUserMedia requires a secure context (HTTPS or localhost).
 
-const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
-const CONSTRAINTS = { video: { facingMode: { ideal: 'environment' } }, audio: false };
+const FORMATS = ['ean_13'];
+const CONSTRAINTS = {
+    video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+    },
+    audio: false,
+};
+const REQUIRED_CONFIRMATIONS = 2;
+
+function digitsOnly(raw) {
+    return (raw || '').replace(/\D/g, '');
+}
+
+// A book ISBN barcode is an EAN-13 in the 978/979 (Bookland) range.
+export function isBookIsbn(raw) {
+    const s = digitsOnly(raw);
+    if (s.length !== 13 || !(s.startsWith('978') || s.startsWith('979'))) {
+        return false;
+    }
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+        sum += parseInt(s[i], 10) * (i % 2 === 0 ? 1 : 3);
+    }
+    const check = (10 - (sum % 10)) % 10;
+    return check === parseInt(s[12], 10);
+}
 
 export class BarcodeScanner {
     constructor() {
@@ -20,76 +47,88 @@ export class BarcodeScanner {
         this.zxing = null;
         this.raf = null;
         this.running = false;
+        this.candidate = null;
+        this.count = 0;
     }
 
     static isSupported() {
         return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     }
 
-    /**
-     * Start scanning into the given <video> element. onDetect(rawValue) is called
-     * once a barcode is read; the caller should stop() afterwards.
-     */
     async start(video, onDetect) {
         this.running = true;
+        this.candidate = null;
+        this.count = 0;
+        this.onDetect = onDetect;
 
         if ('BarcodeDetector' in window) {
-            await this._startNative(video, onDetect);
+            await this._startNative(video);
         } else {
-            await this._startZxing(video, onDetect);
+            await this._startZxing(video);
         }
     }
 
-    async _startNative(video, onDetect) {
+    // Returns true once a confirmed ISBN has been accepted.
+    _consider(raw) {
+        if (!isBookIsbn(raw)) {
+            return false;
+        }
+        const isbn = digitsOnly(raw);
+        if (isbn === this.candidate) {
+            this.count += 1;
+        } else {
+            this.candidate = isbn;
+            this.count = 1;
+        }
+        if (this.count >= REQUIRED_CONFIRMATIONS && this.running) {
+            this.onDetect(isbn);
+            return true;
+        }
+        return false;
+    }
+
+    async _startNative(video) {
         this.stream = await navigator.mediaDevices.getUserMedia(CONSTRAINTS);
         video.srcObject = this.stream;
         video.setAttribute('playsinline', 'true');
         await video.play();
 
+        // Best-effort continuous autofocus for sharper reads.
+        try {
+            await this.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+        } catch { /* unsupported; ignore */ }
+
         let formats = FORMATS;
         try {
             const supported = await window.BarcodeDetector.getSupportedFormats();
             formats = FORMATS.filter((f) => supported.includes(f));
-        } catch {
-            // getSupportedFormats unavailable; use our list.
-        }
+            if (formats.length === 0) formats = ['ean_13'];
+        } catch { /* use default */ }
         this.detector = new window.BarcodeDetector({ formats });
 
         const tick = async () => {
             if (!this.running) return;
             try {
                 const codes = await this.detector.detect(video);
-                if (codes.length && this.running) {
-                    onDetect(codes[0].rawValue);
-                    return;
+                for (const code of codes) {
+                    if (this._consider(code.rawValue)) return; // accepted; stop looping
                 }
-            } catch {
-                // transient detect errors are ignored; keep scanning
-            }
+            } catch { /* transient; keep scanning */ }
             this.raf = requestAnimationFrame(tick);
         };
         this.raf = requestAnimationFrame(tick);
     }
 
-    async _startZxing(video, onDetect) {
+    async _startZxing(video) {
         const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library');
 
         const hints = new Map();
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-            BarcodeFormat.EAN_13,
-            BarcodeFormat.EAN_8,
-            BarcodeFormat.UPC_A,
-            BarcodeFormat.UPC_E,
-        ]);
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13]);
+        hints.set(DecodeHintType.TRY_HARDER, true);
 
         this.zxing = new BrowserMultiFormatReader(hints);
-
-        // decodeFromConstraints acquires the camera, shows it in `video`, and
-        // calls back continuously (result, error) per frame.
         await this.zxing.decodeFromConstraints(CONSTRAINTS, video, (result) => {
-            if (result && this.running) {
-                onDetect(result.getText());
-            }
+            if (result) this._consider(result.getText());
         });
     }
 

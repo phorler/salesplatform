@@ -34,7 +34,7 @@
                             <video x-ref="video" class="w-full rounded-lg bg-black" muted playsinline></video>
                             <div class="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-red-500/80"></div>
                         </div>
-                        <p class="text-white text-sm mt-4">{{ __('Point the camera at the book\'s barcode') }}</p>
+                        <p class="text-white text-sm mt-4">{{ __('Scan the main barcode (the one starting 978/979). Hold steady.') }}</p>
                         <p class="text-red-300 text-sm mt-1" x-show="scanError" x-text="scanError"></p>
                         <button type="button" @click="stopScan()"
                                 class="mt-4 px-4 py-2 bg-white/90 rounded-md text-sm font-medium">
