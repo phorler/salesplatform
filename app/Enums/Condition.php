@@ -41,6 +41,21 @@ enum Condition: string
     }
 
     /**
+     * Amazon flat-file (Inventory Loader) numeric `item-condition` code, used for
+     * manual CSV uploads in Seller Central.
+     */
+    public function amazonInventoryLoaderCode(): int
+    {
+        return match ($this) {
+            self::New => 11,
+            self::LikeNew => 1,   // Used; Like New
+            self::VeryGood => 2,  // Used; Very Good
+            self::Good => 3,      // Used; Good
+            self::Acceptable => 4, // Used; Acceptable
+        };
+    }
+
+    /**
      * Baseline fraction of the market/reference price for this condition. Sellers
      * can override these in their pricing rules; this is the out-of-the-box default.
      */

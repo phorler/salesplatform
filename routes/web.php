@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
     // Inventory + ISBN add flow
     Route::get('/inventory', [InventoryItemController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/create', [InventoryItemController::class, 'create'])->name('inventory.create');
+    Route::get('/inventory/export', [InventoryItemController::class, 'export'])->name('inventory.export');
     Route::post('/inventory/lookup', [InventoryItemController::class, 'lookup'])->name('inventory.lookup');
     Route::post('/inventory', [InventoryItemController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/{inventoryItem}', [InventoryItemController::class, 'show'])->name('inventory.show');

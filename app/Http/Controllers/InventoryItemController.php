@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InventoryItemController extends Controller
 {
@@ -27,10 +28,69 @@ class InventoryItemController extends Controller
 
     public function index(Request $request): View
     {
+        $items = $this->filteredQuery($request)
+            ->with('product')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('inventory.index', [
+            'items' => $items,
+            'filters' => $request->only(['q', 'status', 'condition']),
+            'conditions' => Condition::cases(),
+            'statuses' => InventoryStatus::cases(),
+        ]);
+    }
+
+    /**
+     * Download the current (filtered) inventory as an Amazon Inventory Loader
+     * CSV — for manually adding offers via Seller Central while SP-API access is
+     * pending. Only priced, in-stock items are exported.
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $items = $this->filteredQuery($request)
+            ->with('product')
+            ->where('quantity', '>', 0)
+            ->get();
+
+        $columns = [
+            'sku', 'product-id', 'product-id-type', 'price', 'item-condition',
+            'quantity', 'add-delete', 'item-note', 'fulfillment-center-id',
+        ];
+
+        return response()->streamDownload(function () use ($items, $columns) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $columns);
+
+            foreach ($items as $item) {
+                fputcsv($out, [
+                    $item->sku,
+                    // ISBN-10 matches Amazon's ISBN type most reliably; fall back to ISBN-13.
+                    $item->product->isbn10 ?: $item->product->isbn13,
+                    2, // product-id-type: 2 = ISBN
+                    $item->list_price ?? $item->suggested_price,
+                    $item->condition->amazonInventoryLoaderCode(),
+                    $item->quantity,
+                    'a', // add
+                    $item->condition_note,
+                    '', // fulfillment-center-id blank = merchant-fulfilled
+                ]);
+            }
+
+            fclose($out);
+        }, 'amazon-inventory-'.now()->format('Y-m-d').'.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Shared, filter-aware inventory query for the current user.
+     */
+    private function filteredQuery(Request $request)
+    {
         $filters = $request->only(['q', 'status', 'condition']);
 
-        $items = $request->user()->inventoryItems()
-            ->with('product')
+        return $request->user()->inventoryItems()
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['condition'] ?? null, fn ($query, $condition) => $query->where('condition', $condition))
             ->when($filters['q'] ?? null, function ($query, $term) {
@@ -42,16 +102,7 @@ class InventoryItemController extends Controller
                             ->orWhere('isbn10', 'like', "%{$term}%"));
                 });
             })
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
-
-        return view('inventory.index', [
-            'items' => $items,
-            'filters' => $filters,
-            'conditions' => Condition::cases(),
-            'statuses' => InventoryStatus::cases(),
-        ]);
+            ->latest();
     }
 
     public function create(Request $request): View
