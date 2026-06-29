@@ -6,6 +6,9 @@
 //
 // NOTE: getUserMedia requires a secure context (HTTPS or localhost). Over plain
 // http://<lan-ip> the camera will not start — use the https hostname.
+//
+// Intentionally avoids `#private` methods: some Safari versions throw
+// "cannot access private method" on them. Underscore-prefixed methods instead.
 
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
 const CONSTRAINTS = { video: { facingMode: { ideal: 'environment' } }, audio: false };
@@ -31,13 +34,13 @@ export class BarcodeScanner {
         this.running = true;
 
         if ('BarcodeDetector' in window) {
-            await this.#startNative(video, onDetect);
+            await this._startNative(video, onDetect);
         } else {
-            await this.#startZxing(video, onDetect);
+            await this._startZxing(video, onDetect);
         }
     }
 
-    async #startNative(video, onDetect) {
+    async _startNative(video, onDetect) {
         this.stream = await navigator.mediaDevices.getUserMedia(CONSTRAINTS);
         video.srcObject = this.stream;
         video.setAttribute('playsinline', 'true');
@@ -68,7 +71,7 @@ export class BarcodeScanner {
         this.raf = requestAnimationFrame(tick);
     }
 
-    async #startZxing(video, onDetect) {
+    async _startZxing(video, onDetect) {
         const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library');
 
         const hints = new Map();
@@ -82,7 +85,7 @@ export class BarcodeScanner {
         this.zxing = new BrowserMultiFormatReader(hints);
 
         // decodeFromConstraints acquires the camera, shows it in `video`, and
-        // calls back continuously (one arg per call: result, error).
+        // calls back continuously (result, error) per frame.
         await this.zxing.decodeFromConstraints(CONSTRAINTS, video, (result) => {
             if (result && this.running) {
                 onDetect(result.getText());
