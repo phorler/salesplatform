@@ -47,6 +47,14 @@
                             @if ($item->product->published_year) · {{ $item->product->published_year }} @endif
                             · ISBN {{ $item->product->isbn13 }}
                         </div>
+                        <div class="mt-2">
+                            <a href="https://www.amazon.co.uk/s?k={{ $item->product->isbn13 }}"
+                               target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 underline">
+                                {{ __('Search on Amazon UK') }}
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                        </div>
 
                         <dl class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6 text-sm">
                             <div><dt class="text-gray-500">{{ __('SKU') }}</dt><dd class="font-mono">{{ $item->sku }}</dd></div>
