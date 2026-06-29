@@ -16,6 +16,16 @@ class ConditionTest extends TestCase
         $this->assertSame('used_acceptable', Condition::Acceptable->amazonConditionType());
     }
 
+    public function test_amazon_labels_and_descriptions(): void
+    {
+        $this->assertSame('New', Condition::New->amazonLabel());
+        $this->assertSame('Used - Good', Condition::Good->amazonLabel());
+
+        foreach (Condition::cases() as $case) {
+            $this->assertNotEmpty($case->amazonDescription());
+        }
+    }
+
     public function test_amazon_inventory_loader_condition_codes(): void
     {
         $this->assertSame(11, Condition::New->amazonInventoryLoaderCode());

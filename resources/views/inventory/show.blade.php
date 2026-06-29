@@ -97,6 +97,32 @@
                 </div>
             @endif
 
+            {{-- Amazon condition guidelines (reference) --}}
+            <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <h3 class="font-semibold text-gray-800 mb-3">{{ __('Amazon condition guidelines') }}</h3>
+                <dl class="space-y-3 text-sm">
+                    @foreach (\App\Enums\Condition::cases() as $c)
+                        <div @class([
+                            'rounded-md p-3',
+                            'bg-indigo-50 ring-1 ring-indigo-200' => $c === $item->condition,
+                            'bg-gray-50' => $c !== $item->condition,
+                        ])>
+                            <dt class="font-medium text-gray-900">
+                                {{ $c->amazonLabel() }}
+                                @if ($c === $item->condition)
+                                    <span class="ml-2 inline-flex px-2 py-0.5 rounded-full text-xs bg-indigo-600 text-white">{{ __('This item') }}</span>
+                                @endif
+                            </dt>
+                            <dd class="text-gray-600 mt-1">{{ $c->amazonDescription() }}</dd>
+                        </div>
+                    @endforeach
+                    <div class="rounded-md p-3 bg-gray-50">
+                        <dt class="font-medium text-gray-900">{{ __('Unacceptable') }}</dt>
+                        <dd class="text-gray-600 mt-1">{{ __('Has missing pages and obscured or unreadable text. Amazon also does not permit the sale of advance reading copies, including uncorrected proofs, of in-print or not-yet-published books.') }}</dd>
+                    </div>
+                </dl>
+            </div>
+
         </div>
     </div>
 </x-app-layout>

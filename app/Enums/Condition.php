@@ -27,6 +27,27 @@ enum Condition: string
     }
 
     /**
+     * Amazon's official condition guideline text for books, shown to sellers as
+     * reference when grading an item.
+     */
+    public function amazonDescription(): string
+    {
+        return match ($this) {
+            self::New => 'A brand-new copy with cover and original protective wrapping intact. Books with markings of any kind on the cover or pages, books marked as "Bargain" or "Remainder," or with any other labels attached may not be listed as New condition.',
+            self::LikeNew => 'Item may have minor cosmetic defects (such as marks, wears, cuts, bends, or crushes) on the cover, spine, pages, or dust cover. Dust cover is intact and pages are clean and not marred by notes. Item may contain remainder marks on outside edges. Item may be missing bundled media.',
+            self::VeryGood => 'Item may have minor cosmetic defects (such as marks, wears, cuts, bends, or crushes) on the cover, spine, pages, or dust cover. Shrink wrap, dust covers, or boxed set case may be missing. Item may contain remainder marks on outside edges, which should be noted in listing comments. Item may be missing bundled media.',
+            self::Good => 'All pages and cover are intact (including the dust cover, if applicable). Spine may show signs of wear. Pages may include limited notes and highlighting. May include "From the library of" labels. Shrink wrap, dust covers, or boxed set case may be missing. Item may be missing bundled media.',
+            self::Acceptable => 'All pages and the cover are intact, but shrink wrap, dust covers, or boxed set case may be missing. Pages may include limited notes, highlighting, or minor water damage but the text is readable. Item may be missing bundled media.',
+        };
+    }
+
+    /** Amazon-style label, e.g. "New" or "Used - Good". */
+    public function amazonLabel(): string
+    {
+        return $this === self::New ? 'New' : 'Used - '.$this->label();
+    }
+
+    /**
      * Amazon Listings Items `condition_type` value for a used/new book offer.
      */
     public function amazonConditionType(): string
