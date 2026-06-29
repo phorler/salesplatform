@@ -285,7 +285,7 @@ class AmazonChannel implements MarketplaceChannel
 
     public function marketplaceId(): string
     {
-        return Marketplace::from(config('amazon.marketplace', 'GB'))->value;
+        return Marketplace::fromCountryCode(config('amazon.marketplace', 'GB'))->value;
     }
 
     private function offerCondition(Condition $condition): string
@@ -354,7 +354,7 @@ class AmazonChannel implements MarketplaceChannel
 
     protected function endpoint(): Endpoint
     {
-        $region = Marketplace::toRegion(Marketplace::from(config('amazon.marketplace', 'GB')));
+        $region = Marketplace::toRegion(Marketplace::fromCountryCode(config('amazon.marketplace', 'GB')));
         $sandbox = (bool) config('amazon.sandbox', true);
 
         return match ($region) {

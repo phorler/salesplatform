@@ -37,7 +37,7 @@ class AmazonOAuth
 
     public function marketplace(): Marketplace
     {
-        return Marketplace::from(config('amazon.marketplace', 'GB'));
+        return Marketplace::fromCountryCode(config('amazon.marketplace', 'GB'));
     }
 
     /** The redirect URI must be https and match the SP-API app configuration. */

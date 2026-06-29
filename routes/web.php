@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function () {
     // Marketplace accounts + Amazon OAuth
     Route::get('/marketplace', [MarketplaceAccountController::class, 'index'])->name('marketplace.index');
     Route::delete('/marketplace/{marketplaceAccount}', [MarketplaceAccountController::class, 'destroy'])->name('marketplace.destroy');
+    Route::post('/marketplace/amazon/import', [MarketplaceAccountController::class, 'importListings'])->name('marketplace.amazon.import');
     Route::get('/marketplace/amazon/connect', [AmazonAuthController::class, 'connect'])->name('marketplace.amazon.connect');
     Route::get('/marketplace/amazon/callback', [AmazonAuthController::class, 'callback'])->name('marketplace.amazon.callback');
 });

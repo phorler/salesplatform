@@ -13,6 +13,9 @@
             @error('amazon')
                 <div class="px-4 py-3 bg-red-100 border border-red-200 text-red-800 rounded-md text-sm">{{ $message }}</div>
             @enderror
+            @error('report')
+                <div class="px-4 py-3 bg-red-100 border border-red-200 text-red-800 rounded-md text-sm">{{ $message }}</div>
+            @enderror
 
             {{-- Connected accounts --}}
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
@@ -53,6 +56,20 @@
                         {{ __('Amazon integration is not configured on this server yet. Once the SP-API app credentials (SPAPI_APP_ID, SPAPI_LWA_CLIENT_ID, SPAPI_LWA_CLIENT_SECRET) are set, a “Connect Amazon” button will appear here.') }}
                     </p>
                 @endif
+            </div>
+
+            {{-- Import a listings report (manual status sync without the API) --}}
+            <div class="bg-white shadow-sm sm:rounded-lg p-6">
+                <h3 class="font-semibold text-gray-800 mb-2">{{ __('Import listings report') }}</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    {{ __('In Seller Central go to Reports → Inventory Reports, request an "All Listings Report", download the file, and upload it here to sync each listing\'s status, price and quantity by SKU.') }}
+                </p>
+                <form method="POST" action="{{ route('marketplace.amazon.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+                    @csrf
+                    <input type="file" name="report" accept=".txt,.tsv,.csv"
+                           class="text-sm text-gray-700 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700" required />
+                    <x-primary-button>{{ __('Import') }}</x-primary-button>
+                </form>
             </div>
         </div>
     </div>
