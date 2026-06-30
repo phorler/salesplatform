@@ -68,10 +68,12 @@ export class BarcodeScanner {
     }
 
     async _startNative(video) {
+        this.onStatus('Native detector · starting camera…', null);
         this.stream = await navigator.mediaDevices.getUserMedia(CONSTRAINTS);
         video.srcObject = this.stream;
         video.setAttribute('playsinline', 'true');
         await video.play();
+        this.onStatus('Camera on · scanning (native)…', null);
 
         let formats = NATIVE_FORMATS;
         try {
@@ -95,7 +97,9 @@ export class BarcodeScanner {
     }
 
     async _startZxing(video) {
+        this.onStatus('Loading fallback decoder…', null);
         const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library');
+        this.onStatus('Decoder loaded · starting camera (fallback)…', null);
 
         const hints = new Map();
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -106,7 +110,12 @@ export class BarcodeScanner {
         ]);
 
         this.zxing = new BrowserMultiFormatReader(hints);
+        let live = false;
         await this.zxing.decodeFromConstraints(CONSTRAINTS, video, (result) => {
+            if (!live) {
+                live = true;
+                this.onStatus('Camera on · scanning (fallback)…', null);
+            }
             if (result) this._consider(result.getText());
         });
     }
