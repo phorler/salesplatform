@@ -43,6 +43,40 @@ class Isbn
         return null;
     }
 
+    /**
+     * Derive the ISBN-10 from any valid ISBN, or null when none exists. Only
+     * 978-prefixed ISBN-13s have an ISBN-10 equivalent (979-prefixed ones do not).
+     * For books the ISBN-10 is normally the Amazon ASIN.
+     */
+    public static function toIsbn10(string $raw): ?string
+    {
+        $isbn = self::normalize($raw);
+
+        if (strlen($isbn) === 10 && self::isValidIsbn10($isbn)) {
+            return $isbn;
+        }
+
+        if (strlen($isbn) === 13 && self::isValidIsbn13($isbn) && str_starts_with($isbn, '978')) {
+            $core = substr($isbn, 3, 9); // drop 978 prefix and the ISBN-13 check digit
+
+            return $core.self::isbn10CheckDigit($core);
+        }
+
+        return null;
+    }
+
+    /** Check digit (0-9 or X) for the first 9 digits of an ISBN-10. */
+    private static function isbn10CheckDigit(string $first9): string
+    {
+        $sum = 0;
+        for ($i = 0; $i < 9; $i++) {
+            $sum += ((int) $first9[$i]) * (10 - $i);
+        }
+        $check = (11 - ($sum % 11)) % 11;
+
+        return $check === 10 ? 'X' : (string) $check;
+    }
+
     private static function isValidIsbn10(string $isbn): bool
     {
         $sum = 0;

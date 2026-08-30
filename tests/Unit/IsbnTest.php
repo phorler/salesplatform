@@ -27,4 +27,14 @@ class IsbnTest extends TestCase
         $this->assertSame('9780140328721', Isbn::toIsbn13('978-0-14-032872-1'));
         $this->assertNull(Isbn::toIsbn13('not-an-isbn'));
     }
+
+    public function test_derives_isbn10_from_isbn13(): void
+    {
+        $this->assertSame('0140328726', Isbn::toIsbn13('0140328726') ? Isbn::toIsbn10('9780140328721') : null);
+        $this->assertSame('0099741512', Isbn::toIsbn10('9780099741510'));
+        $this->assertSame('0140328726', Isbn::toIsbn10('0140328726')); // already isbn-10
+        // 979-prefixed ISBN-13s have no ISBN-10 equivalent.
+        $this->assertNull(Isbn::toIsbn10('9798999174727'));
+        $this->assertNull(Isbn::toIsbn10('not-an-isbn'));
+    }
 }
