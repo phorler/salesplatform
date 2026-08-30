@@ -17,7 +17,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InventoryItemController extends Controller
 {
@@ -39,48 +38,6 @@ class InventoryItemController extends Controller
             'filters' => $request->only(['q', 'status', 'condition']),
             'conditions' => Condition::cases(),
             'statuses' => InventoryStatus::cases(),
-        ]);
-    }
-
-    /**
-     * Download the current (filtered) inventory as an Amazon Inventory Loader
-     * CSV — for manually adding offers via Seller Central while SP-API access is
-     * pending. Only priced, in-stock items are exported.
-     */
-    public function export(Request $request): StreamedResponse
-    {
-        $items = $this->filteredQuery($request)
-            ->with('product')
-            ->where('quantity', '>', 0)
-            ->get();
-
-        $columns = [
-            'sku', 'product-id', 'product-id-type', 'price', 'item-condition',
-            'quantity', 'add-delete', 'item-note', 'fulfillment-center-id',
-        ];
-
-        return response()->streamDownload(function () use ($items, $columns) {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, $columns);
-
-            foreach ($items as $item) {
-                fputcsv($out, [
-                    $item->sku,
-                    // ISBN-10 matches Amazon's ISBN type most reliably; fall back to ISBN-13.
-                    $item->product->isbn10 ?: $item->product->isbn13,
-                    2, // product-id-type: 2 = ISBN
-                    $item->list_price ?? $item->suggested_price,
-                    $item->condition->amazonInventoryLoaderCode(),
-                    $item->quantity,
-                    'a', // add
-                    $item->condition_note,
-                    '', // fulfillment-center-id blank = merchant-fulfilled
-                ]);
-            }
-
-            fclose($out);
-        }, 'amazon-inventory-'.now()->format('Y-m-d').'.csv', [
-            'Content-Type' => 'text/csv',
         ]);
     }
 
@@ -177,6 +134,8 @@ class InventoryItemController extends Controller
 
         $condition = Condition::from($validated['condition']);
         $suggested = $this->suggestedPrice($request, $condition, $validated['reference_price'] ?? null);
+        $listPrice = $validated['list_price'] ?? $suggested;
+        $chosenStatus = isset($validated['status']) ? InventoryStatus::from($validated['status']) : InventoryStatus::Draft;
 
         $item = $this->inventory->createFromProduct($request->user(), $product, [
             'condition' => $condition,
@@ -184,10 +143,10 @@ class InventoryItemController extends Controller
             'quantity' => $validated['quantity'],
             'cost' => $validated['cost'] ?? null,
             'suggested_price' => $suggested,
-            'list_price' => $validated['list_price'] ?? $suggested,
+            'list_price' => $listPrice,
             'location' => $validated['location'] ?? null,
             'notes' => $validated['notes'] ?? null,
-            'status' => isset($validated['status']) ? InventoryStatus::from($validated['status']) : InventoryStatus::Draft,
+            'status' => $this->autoStatus($chosenStatus, $listPrice),
         ]);
 
         return redirect()
@@ -239,6 +198,7 @@ class InventoryItemController extends Controller
 
         $condition = Condition::from($validated['condition']);
         $suggested = $this->suggestedPrice($request, $condition, $validated['reference_price'] ?? null);
+        $listPrice = $validated['list_price'] ?? null;
 
         $inventoryItem->update([
             'condition' => $condition,
@@ -246,15 +206,28 @@ class InventoryItemController extends Controller
             'quantity' => $validated['quantity'],
             'cost' => $validated['cost'] ?? null,
             'suggested_price' => $suggested ?? $inventoryItem->suggested_price,
-            'list_price' => $validated['list_price'] ?? null,
+            'list_price' => $listPrice,
             'location' => $validated['location'] ?? null,
             'notes' => $validated['notes'] ?? null,
-            'status' => InventoryStatus::from($validated['status']),
+            'status' => $this->autoStatus(InventoryStatus::from($validated['status']), $listPrice),
         ]);
 
         return redirect()
             ->route('inventory.show', $inventoryItem)
             ->with('status', 'Item updated.');
+    }
+
+    /**
+     * A graded, priced book that's still a Draft becomes "Ready to list" on save.
+     * Any explicitly-chosen status (Listed/Sold/Inactive/Ready to list) is kept.
+     */
+    private function autoStatus(InventoryStatus $chosen, $listPrice): InventoryStatus
+    {
+        $priced = $listPrice !== null && $listPrice !== '';
+
+        return ($chosen === InventoryStatus::Draft && $priced)
+            ? InventoryStatus::ReadyToList
+            : $chosen;
     }
 
     public function destroy(InventoryItem $inventoryItem): RedirectResponse

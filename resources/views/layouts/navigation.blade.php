@@ -21,6 +21,9 @@
                     <x-nav-link :href="route('inventory.create')" :active="request()->routeIs('inventory.create')">
                         {{ __('Add book') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('exports.index')" :active="request()->routeIs('exports.*')">
+                        {{ __('Exports') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('sales.index')" :active="request()->routeIs('sales.*')">
                         {{ __('Sales') }}
                     </x-nav-link>
@@ -91,6 +94,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('inventory.create')" :active="request()->routeIs('inventory.create')">
                 {{ __('Add book') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('exports.index')" :active="request()->routeIs('exports.*')">
+                {{ __('Exports') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('sales.index')" :active="request()->routeIs('sales.*')">
                 {{ __('Sales') }}

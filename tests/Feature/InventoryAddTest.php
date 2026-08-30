@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\InventoryStatus;
 use App\Models\InventoryItem;
 use App\Models\Product;
 use App\Models\User;
@@ -78,7 +79,8 @@ class InventoryAddTest extends TestCase
         $this->assertSame('6.00', (string) $item->list_price);        // falls back to suggested
         $this->assertSame(self::ISBN, $item->product->isbn13);
         $this->assertNotEmpty($item->sku);
-        $this->assertSame(\App\Enums\InventoryStatus::Draft, $item->status); // default
+        // Graded + priced on save → auto-promoted to Ready to list.
+        $this->assertSame(InventoryStatus::ReadyToList, $item->status);
     }
 
     public function test_store_honours_a_chosen_status(): void
@@ -95,7 +97,7 @@ class InventoryAddTest extends TestCase
         ])->assertRedirect(route('inventory.index'));
 
         $item = InventoryItem::where('user_id', $user->id)->firstOrFail();
-        $this->assertSame(\App\Enums\InventoryStatus::Listed, $item->status);
+        $this->assertSame(InventoryStatus::Listed, $item->status);
         $this->assertSame('4.99', (string) $item->list_price);
     }
 

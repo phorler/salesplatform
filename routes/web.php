@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AmazonAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InventoryItemController;
 use App\Http\Controllers\ListingController;
 use App\Http\Controllers\MarketplaceAccountController;
@@ -26,7 +27,6 @@ Route::middleware('auth')->group(function () {
     // Inventory + ISBN add flow
     Route::get('/inventory', [InventoryItemController::class, 'index'])->name('inventory.index');
     Route::get('/inventory/create', [InventoryItemController::class, 'create'])->name('inventory.create');
-    Route::get('/inventory/export', [InventoryItemController::class, 'export'])->name('inventory.export');
     Route::post('/inventory/lookup', [InventoryItemController::class, 'lookup'])->name('inventory.lookup');
     Route::post('/inventory', [InventoryItemController::class, 'store'])->name('inventory.store');
     Route::get('/inventory/{inventoryItem}/amazon-offers', [InventoryItemController::class, 'amazonOffers'])->name('inventory.amazon-offers');
@@ -38,6 +38,12 @@ Route::middleware('auth')->group(function () {
     // Publish to a marketplace + live pricing
     Route::post('/inventory/{inventoryItem}/publish', [ListingController::class, 'store'])->name('listings.publish');
     Route::post('/inventory/{inventoryItem}/refresh-price', [ListingController::class, 'refreshPrice'])->name('listings.refresh-price');
+
+    // Amazon CSV exports (batches you can re-download and mark listed)
+    Route::get('/exports', [ExportController::class, 'index'])->name('exports.index');
+    Route::post('/exports', [ExportController::class, 'store'])->name('exports.store');
+    Route::get('/exports/{exportBatch}/download', [ExportController::class, 'download'])->name('exports.download');
+    Route::post('/exports/{exportBatch}/mark-listed', [ExportController::class, 'markListed'])->name('exports.mark-listed');
 
     // Sales history
     Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');

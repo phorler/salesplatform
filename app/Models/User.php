@@ -35,6 +35,11 @@ class User extends Authenticatable
         return $this->hasMany(Sale::class);
     }
 
+    public function exportBatches(): HasMany
+    {
+        return $this->hasMany(ExportBatch::class);
+    }
+
     public function pricingRule(): HasOne
     {
         return $this->hasOne(PricingRule::class);
