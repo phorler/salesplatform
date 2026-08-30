@@ -2,19 +2,13 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $item->product->title }}</h2>
-            <div class="flex gap-2">
-                <a href="{{ route('inventory.edit', $item) }}"
-                   class="inline-flex items-center px-4 py-2 bg-gray-800 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
-                    {{ __('Edit') }}
-                </a>
-                <form method="POST" action="{{ route('inventory.destroy', $item) }}"
-                      onsubmit="return confirm('Remove this item from inventory?');">
-                    @csrf @method('DELETE')
-                    <button class="inline-flex items-center px-4 py-2 bg-red-600 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500">
-                        {{ __('Delete') }}
-                    </button>
-                </form>
-            </div>
+            <form method="POST" action="{{ route('inventory.destroy', $item) }}"
+                  onsubmit="return confirm('Remove this item from inventory?');">
+                @csrf @method('DELETE')
+                <button class="inline-flex items-center px-4 py-2 bg-red-600 rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500">
+                    {{ __('Delete') }}
+                </button>
+            </form>
         </div>
     </x-slot>
 
@@ -72,25 +66,100 @@
                             </a>
                         </div>
 
-                        <dl class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6 text-sm">
-                            <div><dt class="text-gray-500">{{ __('SKU') }}</dt><dd class="font-mono">{{ $item->sku }}</dd></div>
-                            <div><dt class="text-gray-500">{{ __('Condition') }}</dt><dd>{{ $item->condition->label() }}</dd></div>
-                            <div><dt class="text-gray-500">{{ __('Status') }}</dt><dd>{{ $item->status->label() }}</dd></div>
-                            <div><dt class="text-gray-500">{{ __('Quantity') }}</dt><dd>{{ $item->quantity }}</dd></div>
-                            <div><dt class="text-gray-500">{{ __('Cost') }}</dt><dd>{{ $item->cost !== null ? '£'.number_format($item->cost, 2) : '—' }}</dd></div>
-                            <div><dt class="text-gray-500">{{ __('Suggested') }}</dt><dd>{{ $item->suggested_price !== null ? '£'.number_format($item->suggested_price, 2) : '—' }}</dd></div>
-                            <div><dt class="text-gray-500">{{ __('List price') }}</dt><dd>{{ $item->list_price !== null ? '£'.number_format($item->list_price, 2) : '—' }}</dd></div>
-                            <div><dt class="text-gray-500">{{ __('Location') }}</dt><dd>{{ $item->location ?: '—' }}</dd></div>
-                        </dl>
-
-                        @if ($item->condition_note)
-                            <p class="mt-4 text-sm"><span class="text-gray-500">{{ __('Condition note:') }}</span> {{ $item->condition_note }}</p>
-                        @endif
-                        @if ($item->notes)
-                            <p class="mt-2 text-sm"><span class="text-gray-500">{{ __('Notes:') }}</span> {{ $item->notes }}</p>
-                        @endif
+                        <div class="mt-4 text-sm text-gray-500">{{ __('SKU') }}: <span class="font-mono text-gray-700">{{ $item->sku }}</span></div>
                     </div>
                 </div>
+
+                {{-- Inline editable fields --}}
+                <form method="POST" action="{{ route('inventory.update', $item) }}" class="mt-6 border-t pt-6"
+                      x-data="editItem(@js($guidelines), @js($multipliers))">
+                    @csrf @method('PUT')
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="sm:col-span-2">
+                            <x-input-label for="condition" :value="__('Condition')" />
+                            <select id="condition" name="condition" x-model="condition"
+                                    class="mt-1 block w-full sm:w-72 border-gray-300 rounded-md shadow-sm">
+                                @foreach ($conditions as $c)
+                                    <option value="{{ $c->value }}" @selected(old('condition', $item->condition->value) === $c->value)>{{ $c->label() }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('condition')" class="mt-2" />
+
+                            {{-- Amazon guideline for the selected condition (updates on change) --}}
+                            <div class="mt-2">
+                                <button type="button" @click="showGuideline = !showGuideline"
+                                        class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800">
+                                    <span x-text="showGuideline ? '▾' : '▸'"></span>
+                                    {{ __('Amazon guideline for') }} “<span x-text="guidelines[condition].label"></span>”
+                                </button>
+                                <p x-show="showGuideline" x-cloak
+                                   class="mt-1 text-xs text-gray-600 bg-gray-50 rounded-md p-3" x-text="guidelines[condition].description"></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <x-input-label for="status" :value="__('Status')" />
+                            <select id="status" name="status" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                @foreach ($statuses as $s)
+                                    <option value="{{ $s->value }}" @selected(old('status', $item->status->value) === $s->value)>{{ $s->label() }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('status')" class="mt-2" />
+                        </div>
+
+                        <div>
+                            <x-input-label for="quantity" :value="__('Quantity')" />
+                            <x-text-input id="quantity" name="quantity" type="number" min="1" class="mt-1 block w-full"
+                                          :value="old('quantity', $item->quantity)" />
+                            <x-input-error :messages="$errors->get('quantity')" class="mt-2" />
+                        </div>
+
+                        <div>
+                            <x-input-label for="cost" :value="__('Your cost (£)')" />
+                            <x-text-input id="cost" name="cost" type="number" step="0.01" min="0" class="mt-1 block w-full"
+                                          :value="old('cost', $item->cost)" />
+                        </div>
+
+                        <div>
+                            <x-input-label for="reference_price" :value="__('Market price (£, optional)')" />
+                            <x-text-input id="reference_price" name="reference_price" type="number" step="0.01" min="0" class="mt-1 block w-full"
+                                          x-model.number="referencePrice" />
+                            <p class="mt-1 text-xs text-gray-600" x-show="suggested !== null">
+                                {{ __('Suggested:') }} £<span x-text="suggested"></span>
+                                <button type="button" class="ml-1 underline" @click="listPrice = suggested">{{ __('use') }}</button>
+                            </p>
+                        </div>
+
+                        <div>
+                            <x-input-label for="list_price" :value="__('List price (£)')" />
+                            <x-text-input id="list_price" name="list_price" type="number" step="0.01" min="0" class="mt-1 block w-full"
+                                          x-model.number="listPrice" />
+                        </div>
+
+                        <div>
+                            <x-input-label for="location" :value="__('Location / shelf')" />
+                            <x-text-input id="location" name="location" type="text" class="mt-1 block w-full"
+                                          :value="old('location', $item->location)" />
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <x-input-label for="condition_note" :value="__('Condition note')" />
+                            <x-text-input id="condition_note" name="condition_note" type="text" class="mt-1 block w-full"
+                                          :value="old('condition_note', $item->condition_note)" />
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <x-input-label for="notes" :value="__('Notes')" />
+                            <textarea id="notes" name="notes" rows="2"
+                                      class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">{{ old('notes', $item->notes) }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end mt-6">
+                        <x-primary-button>{{ __('Save changes') }}</x-primary-button>
+                    </div>
+                </form>
             </div>
 
             {{-- Amazon market (Keepa) --}}
@@ -113,32 +182,26 @@
                 </div>
             @endif
 
-            {{-- Amazon condition guidelines (reference) --}}
-            <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <h3 class="font-semibold text-gray-800 mb-3">{{ __('Amazon condition guidelines') }}</h3>
-                <dl class="space-y-3 text-sm">
-                    @foreach (\App\Enums\Condition::cases() as $c)
-                        <div @class([
-                            'rounded-md p-3',
-                            'bg-indigo-50 ring-1 ring-indigo-200' => $c === $item->condition,
-                            'bg-gray-50' => $c !== $item->condition,
-                        ])>
-                            <dt class="font-medium text-gray-900">
-                                {{ $c->amazonLabel() }}
-                                @if ($c === $item->condition)
-                                    <span class="ml-2 inline-flex px-2 py-0.5 rounded-full text-xs bg-indigo-600 text-white">{{ __('This item') }}</span>
-                                @endif
-                            </dt>
-                            <dd class="text-gray-600 mt-1">{{ $c->amazonDescription() }}</dd>
-                        </div>
-                    @endforeach
-                    <div class="rounded-md p-3 bg-gray-50">
-                        <dt class="font-medium text-gray-900">{{ __('Unacceptable') }}</dt>
-                        <dd class="text-gray-600 mt-1">{{ __('Has missing pages and obscured or unreadable text. Amazon also does not permit the sale of advance reading copies, including uncorrected proofs, of in-print or not-yet-published books.') }}</dd>
-                    </div>
-                </dl>
-            </div>
-
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        function editItem(guidelines, multipliers) {
+            return {
+                guidelines,
+                multipliers,
+                condition: @js(old('condition', $item->condition->value)),
+                referencePrice: null,
+                listPrice: @js($item->list_price !== null ? (float) $item->list_price : null),
+                showGuideline: false,
+                get suggested() {
+                    if (this.referencePrice == null || this.referencePrice === '') return null;
+                    const m = this.multipliers[this.condition] ?? 1;
+                    return (Math.round(this.referencePrice * m * 100) / 100).toFixed(2);
+                },
+            };
+        }
+    </script>
+    @endpush
 </x-app-layout>

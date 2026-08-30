@@ -170,11 +170,27 @@ class InventoryItemController extends Controller
             ->with('status', "Added “{$product->title}” ({$item->sku}) to your inventory.");
     }
 
-    public function show(InventoryItem $inventoryItem): View
+    public function show(Request $request, InventoryItem $inventoryItem): View
     {
         $inventoryItem->load('product.latestObservation', 'listings.marketplaceAccount', 'sales');
 
-        return view('inventory.show', ['item' => $inventoryItem]);
+        // condition value => Amazon label + guideline text, for the reactive
+        // "guideline for the selected condition" helper on the edit form.
+        $guidelines = [];
+        foreach (Condition::cases() as $case) {
+            $guidelines[$case->value] = [
+                'label' => $case->amazonLabel(),
+                'description' => $case->amazonDescription(),
+            ];
+        }
+
+        return view('inventory.show', [
+            'item' => $inventoryItem,
+            'conditions' => Condition::cases(),
+            'statuses' => InventoryStatus::cases(),
+            'multipliers' => $this->multipliersFor($request),
+            'guidelines' => $guidelines,
+        ]);
     }
 
     public function edit(Request $request, InventoryItem $inventoryItem): View
