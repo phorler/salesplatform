@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect x="0" y="0" width="64" height="64" rx="12" fill="#fbfbef"/>
+  <!-- brown cover / binding -->
+  <path d="M5 40 C3 43 3 47 8 49 C19 54 45 54 56 49 C61 47 61 43 59 40 C48 46 16 46 5 40 Z"
+        fill="#5c2e0e" stroke="#1a0e04" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- left page -->
+  <path d="M32 15 C24 11 13 11 6 16 L6 43 C15 39 26 41 32 45 Z"
+        fill="#e9e98a" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- right page -->
+  <path d="M32 15 C40 11 51 11 58 16 L58 43 C49 39 38 41 32 45 Z"
+        fill="#e9e98a" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- page fan lines -->
+  <g fill="none" stroke="#111" stroke-width="1" opacity="0.85" stroke-linecap="round">
+    <path d="M32 19 C25 15 15 15 9 19"/>
+    <path d="M32 23 C25 19 15 19 9 23"/>
+    <path d="M32 19 C39 15 49 15 55 19"/>
+    <path d="M32 23 C39 19 49 19 55 23"/>
+  </g>
+  <!-- spine -->
+  <path d="M32 15 L32 45" fill="none" stroke="#111" stroke-width="1.6" stroke-linecap="round"/>
+</svg>
