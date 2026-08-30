@@ -10,7 +10,18 @@
 // NOTE: getUserMedia requires a secure context (HTTPS or localhost).
 
 const NATIVE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
-const CONSTRAINTS = { video: { facingMode: { ideal: 'environment' } }, audio: false };
+
+// Request a high-resolution rear-camera stream. iOS otherwise hands back ~640x480,
+// too coarse to resolve EAN-13 bars from phone distance. `ideal` (not `exact`)
+// degrades gracefully on devices that can't provide it, so it never fails.
+const CONSTRAINTS = {
+    video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+    },
+    audio: false,
+};
 
 function digitsOnly(raw) {
     return (raw || '').replace(/\D/g, '');
