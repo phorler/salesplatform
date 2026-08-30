@@ -6,7 +6,7 @@
     <div class="py-8">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6"
-                 x-data="bookAdd(@js($multipliers))">
+                 x-data="bookAdd(@js($multipliers), @js($guidelines))">
 
                 {{-- Step 1: find the book by ISBN --}}
                 <div>
@@ -67,14 +67,9 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                        <div>
-                            <x-input-label for="condition" :value="__('Condition')" />
-                            <select id="condition" name="condition" x-model="condition"
-                                    class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                @foreach ($conditions as $c)
-                                    <option value="{{ $c->value }}">{{ $c->label() }}</option>
-                                @endforeach
-                            </select>
+                        <div class="sm:col-span-2">
+                            <x-input-label :value="__('Condition')" />
+                            <x-condition-dropdown />
                             <x-input-error :messages="$errors->get('condition')" class="mt-2" />
                         </div>
 
@@ -130,8 +125,9 @@
 
     @push('scripts')
     <script>
-        function bookAdd(multipliers) {
+        function bookAdd(multipliers, guidelines) {
             return {
+                guidelines,
                 isbn: '', loading: false, error: '', found: false, book: {},
                 condition: 'good', referencePrice: null, listPrice: null,
                 scanning: false, scanError: '', scanStatus: '', scanDebug: '', scanner: null,

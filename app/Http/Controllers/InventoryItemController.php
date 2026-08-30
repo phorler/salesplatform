@@ -111,7 +111,27 @@ class InventoryItemController extends Controller
         return view('inventory.create', [
             'conditions' => Condition::cases(),
             'multipliers' => $this->multipliersFor($request),
+            'guidelines' => $this->conditionGuidelines(),
         ]);
+    }
+
+    /**
+     * condition value => Amazon label + guideline text, for the descriptive
+     * condition dropdown on the add/edit forms.
+     *
+     * @return array<string, array{label: string, description: string}>
+     */
+    private function conditionGuidelines(): array
+    {
+        $guidelines = [];
+        foreach (Condition::cases() as $case) {
+            $guidelines[$case->value] = [
+                'label' => $case->amazonLabel(),
+                'description' => $case->amazonDescription(),
+            ];
+        }
+
+        return $guidelines;
     }
 
     /**
@@ -175,22 +195,12 @@ class InventoryItemController extends Controller
     {
         $inventoryItem->load('product.latestObservation', 'listings.marketplaceAccount', 'sales');
 
-        // condition value => Amazon label + guideline text, for the reactive
-        // "guideline for the selected condition" helper on the edit form.
-        $guidelines = [];
-        foreach (Condition::cases() as $case) {
-            $guidelines[$case->value] = [
-                'label' => $case->amazonLabel(),
-                'description' => $case->amazonDescription(),
-            ];
-        }
-
         return view('inventory.show', [
             'item' => $inventoryItem,
             'conditions' => Condition::cases(),
             'statuses' => InventoryStatus::cases(),
             'multipliers' => $this->multipliersFor($request),
-            'guidelines' => $guidelines,
+            'guidelines' => $this->conditionGuidelines(),
         ]);
     }
 
