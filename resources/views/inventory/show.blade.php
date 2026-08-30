@@ -47,12 +47,25 @@
                             @if ($item->product->published_year) · {{ $item->product->published_year }} @endif
                             · ISBN {{ $item->product->isbn13 }}
                         </div>
-                        <div class="mt-2">
+                        @php
+                            // For books the Amazon ASIN is normally the ISBN-10, and the
+                            // "More buying choices" (all sellers/prices) page is keyed by ASIN.
+                            $amazonIcon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>';
+                        @endphp
+                        <div class="mt-2 flex flex-wrap gap-4">
+                            @if ($item->product->isbn10)
+                                <a href="https://www.amazon.co.uk/gp/offer-listing/{{ $item->product->isbn10 }}"
+                                   target="_blank" rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 underline">
+                                    {{ __('More buying choices on Amazon UK') }}
+                                    {!! $amazonIcon !!}
+                                </a>
+                            @endif
                             <a href="https://www.amazon.co.uk/s?k={{ $item->product->isbn13 }}"
                                target="_blank" rel="noopener noreferrer"
-                               class="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 underline">
+                               class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 underline">
                                 {{ __('Search on Amazon UK') }}
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                {!! $amazonIcon !!}
                             </a>
                         </div>
 
