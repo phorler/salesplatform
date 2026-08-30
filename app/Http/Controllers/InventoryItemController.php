@@ -6,6 +6,7 @@ use App\Channels\Data\Money;
 use App\Enums\Condition;
 use App\Enums\InventoryStatus;
 use App\Models\InventoryItem;
+use App\Models\User;
 use App\Services\Amazon\AmazonOfferScraper;
 use App\Services\InventoryService;
 use App\Services\OpenLibraryService;
@@ -28,27 +29,34 @@ class InventoryItemController extends Controller
 
     public function index(Request $request): View
     {
-        $items = $this->filteredQuery($request)
+        $filters = [
+            'q' => $request->query('q'),
+            'condition' => $request->query('condition'),
+            // Default to Draft on first load; an explicit ?status= (Any) shows all.
+            'status' => $request->has('status') ? $request->query('status') : InventoryStatus::Draft->value,
+        ];
+
+        $items = $this->filteredQuery($request->user(), $filters)
             ->with('product')
             ->paginate(25)
             ->withQueryString();
 
         return view('inventory.index', [
             'items' => $items,
-            'filters' => $request->only(['q', 'status', 'condition']),
+            'filters' => $filters,
             'conditions' => Condition::cases(),
             'statuses' => InventoryStatus::cases(),
         ]);
     }
 
     /**
-     * Shared, filter-aware inventory query for the current user.
+     * Filter-aware inventory query for a user.
+     *
+     * @param  array{q: ?string, status: ?string, condition: ?string}  $filters
      */
-    private function filteredQuery(Request $request)
+    private function filteredQuery(User $user, array $filters)
     {
-        $filters = $request->only(['q', 'status', 'condition']);
-
-        return $request->user()->inventoryItems()
+        return $user->inventoryItems()
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['condition'] ?? null, fn ($query, $condition) => $query->where('condition', $condition))
             ->when($filters['q'] ?? null, function ($query, $term) {

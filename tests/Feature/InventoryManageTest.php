@@ -82,6 +82,23 @@ class InventoryManageTest extends TestCase
                 && $items->first()->status === InventoryStatus::Sold);
     }
 
+    public function test_index_defaults_to_draft_and_any_shows_all(): void
+    {
+        $user = User::factory()->create();
+        $product = Product::factory()->create();
+        InventoryItem::factory()->create(['user_id' => $user->id, 'product_id' => $product->id, 'status' => InventoryStatus::Draft]);
+        InventoryItem::factory()->create(['user_id' => $user->id, 'product_id' => $product->id, 'status' => InventoryStatus::ReadyToList]);
+
+        // No status param → defaults to Draft.
+        $this->actingAs($user)->get(route('inventory.index'))
+            ->assertViewHas('items', fn ($items) => $items->count() === 1
+                && $items->first()->status === InventoryStatus::Draft);
+
+        // Explicit empty status (Any) → all.
+        $this->actingAs($user)->get(route('inventory.index', ['status' => '']))
+            ->assertViewHas('items', fn ($items) => $items->count() === 2);
+    }
+
     public function test_pricing_rules_can_be_saved(): void
     {
         $user = User::factory()->create();
