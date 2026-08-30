@@ -76,26 +76,34 @@
                     @csrf @method('PUT')
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="sm:col-span-2">
-                            <x-input-label for="condition" :value="__('Condition')" />
-                            <select id="condition" name="condition" x-model="condition"
-                                    class="mt-1 block w-full sm:w-72 border-gray-300 rounded-md shadow-sm">
-                                @foreach ($conditions as $c)
-                                    <option value="{{ $c->value }}" @selected(old('condition', $item->condition->value) === $c->value)>{{ $c->label() }}</option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('condition')" class="mt-2" />
+                        <div class="sm:col-span-2" x-data="{ open: false }">
+                            <x-input-label :value="__('Condition')" />
+                            <input type="hidden" name="condition" :value="condition">
 
-                            {{-- Amazon guideline for the selected condition (updates on change) --}}
-                            <div class="mt-2">
-                                <button type="button" @click="showGuideline = !showGuideline"
-                                        class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800">
-                                    <span x-text="showGuideline ? '▾' : '▸'"></span>
-                                    {{ __('Amazon guideline for') }} “<span x-text="guidelines[condition].label"></span>”
+                            {{-- Custom dropdown: each option shows the Amazon label + full guideline --}}
+                            <div class="relative mt-1">
+                                <button type="button" @click="open = !open"
+                                        class="w-full flex items-center justify-between border border-gray-300 rounded-md shadow-sm px-3 py-2 text-left bg-white hover:bg-gray-50">
+                                    <span class="font-medium text-gray-900" x-text="guidelines[condition].label"></span>
+                                    <span class="text-gray-400" x-text="open ? '▲' : '▼'"></span>
                                 </button>
-                                <p x-show="showGuideline" x-cloak
-                                   class="mt-1 text-xs text-gray-600 bg-gray-50 rounded-md p-3" x-text="guidelines[condition].description"></p>
+
+                                <div x-show="open" x-cloak @click.outside="open = false"
+                                     class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-96 overflow-auto divide-y divide-gray-100">
+                                    <template x-for="c in Object.keys(guidelines)" :key="c">
+                                        <button type="button" @click="condition = c; open = false"
+                                                class="block w-full text-left px-3 py-3 hover:bg-indigo-50"
+                                                :class="condition === c ? 'bg-indigo-50' : ''">
+                                            <div class="font-medium text-gray-900 text-sm flex items-center gap-2">
+                                                <span x-text="guidelines[c].label"></span>
+                                                <span x-show="condition === c" class="inline-flex px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-600 text-white">{{ __('Selected') }}</span>
+                                            </div>
+                                            <div class="text-xs text-gray-600 mt-1 leading-relaxed" x-text="guidelines[c].description"></div>
+                                        </button>
+                                    </template>
+                                </div>
                             </div>
+                            <x-input-error :messages="$errors->get('condition')" class="mt-2" />
                         </div>
 
                         <div>
@@ -194,7 +202,6 @@
                 condition: @js(old('condition', $item->condition->value)),
                 referencePrice: null,
                 listPrice: @js($item->list_price !== null ? (float) $item->list_price : null),
-                showGuideline: false,
                 get suggested() {
                     if (this.referencePrice == null || this.referencePrice === '') return null;
                     const m = this.multipliers[this.condition] ?? 1;
