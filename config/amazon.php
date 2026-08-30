@@ -36,4 +36,9 @@ return [
     'book_product_type' => env('AMAZON_BOOK_PRODUCT_TYPE', 'ABIS_BOOK'),
     'fulfillment_channel_code' => env('AMAZON_FULFILLMENT_CHANNEL', 'DEFAULT'),
 
+    // On-demand, cached scrape of the public product page for a lightweight offer
+    // summary (featured + lowest new/used) to aid pricing decisions. Against
+    // Amazon's ToS; kept minimal/cached and can be turned off here.
+    'scrape_offers' => (bool) env('AMAZON_SCRAPE_OFFERS', true),
+
 ];

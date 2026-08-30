@@ -170,6 +170,36 @@
                 </form>
             </div>
 
+            {{-- Amazon offers (live, on-demand scrape of the product page) --}}
+            <div class="bg-white shadow-sm sm:rounded-lg p-6"
+                 x-data="amazonOffers('{{ route('inventory.amazon-offers', $item) }}')" x-init="load()">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-gray-800">{{ __('Amazon offers') }}</h3>
+                    <span class="text-xs text-gray-400" x-show="loading">{{ __('checking Amazon…') }}</span>
+                </div>
+
+                <template x-if="!loading && offers && (offers.featured || offers.lowest_any || offers.lowest_new || offers.lowest_used)">
+                    <div>
+                        <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                            <div><dt class="text-gray-500">{{ __('Featured') }}</dt><dd x-text="offers.featured ? '£'+offers.featured : '—'"></dd></div>
+                            <div><dt class="text-gray-500">{{ __('Lowest new') }}</dt><dd x-text="offers.lowest_new ? '£'+offers.lowest_new : '—'"></dd></div>
+                            <div><dt class="text-gray-500">{{ __('Lowest used') }}</dt><dd x-text="offers.lowest_used ? '£'+offers.lowest_used : '—'"></dd></div>
+                            <div><dt class="text-gray-500">{{ __('Lowest any') }}</dt><dd x-text="offers.lowest_any ? '£'+offers.lowest_any : '—'"></dd></div>
+                        </dl>
+                        <p class="mt-3 text-xs text-gray-400">
+                            {{ __('Summary scraped from the Amazon product page. See') }}
+                            <a :href="offers.url || '{{ 'https://www.amazon.co.uk/s?k='.$item->product->isbn13 }}'" target="_blank" rel="noopener noreferrer" class="underline text-indigo-600">{{ __('all buying choices') }}</a>.
+                        </p>
+                    </div>
+                </template>
+
+                <p x-show="!loading && (!offers || !(offers.featured || offers.lowest_any || offers.lowest_new || offers.lowest_used))" x-cloak
+                   class="text-sm text-gray-500">
+                    {{ __('No live offer data right now —') }}
+                    <a href="https://www.amazon.co.uk/s?k={{ $item->product->isbn13 }}" target="_blank" rel="noopener noreferrer" class="underline">{{ __('check on Amazon') }}</a>.
+                </p>
+            </div>
+
             {{-- Amazon market (Keepa) --}}
             @if ($item->product->latestObservation)
                 @php $obs = $item->product->latestObservation; @endphp
@@ -195,6 +225,23 @@
 
     @push('scripts')
     <script>
+        function amazonOffers(url) {
+            return {
+                loading: true,
+                offers: null,
+                async load() {
+                    try {
+                        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                        this.offers = await res.json();
+                    } catch (e) {
+                        this.offers = null;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+            };
+        }
+
         function editItem(guidelines, multipliers) {
             return {
                 guidelines,

@@ -6,6 +6,7 @@ use App\Channels\Data\Money;
 use App\Enums\Condition;
 use App\Enums\InventoryStatus;
 use App\Models\InventoryItem;
+use App\Services\Amazon\AmazonOfferScraper;
 use App\Services\InventoryService;
 use App\Services\OpenLibraryService;
 use App\Services\Pricing\ManualMultiplierStrategy;
@@ -191,6 +192,17 @@ class InventoryItemController extends Controller
             'multipliers' => $this->multipliersFor($request),
             'guidelines' => $guidelines,
         ]);
+    }
+
+    /**
+     * AJAX: on-demand (cached) Amazon offer summary for this item, so the page
+     * render isn't blocked on the fetch. Returns nulls gracefully on any failure.
+     */
+    public function amazonOffers(InventoryItem $inventoryItem, AmazonOfferScraper $scraper): JsonResponse
+    {
+        $summary = $scraper->forIsbn($inventoryItem->product->isbn13);
+
+        return response()->json($summary?->toArray() ?? ['url' => null]);
     }
 
     public function edit(Request $request, InventoryItem $inventoryItem): View

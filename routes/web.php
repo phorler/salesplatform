@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventory/export', [InventoryItemController::class, 'export'])->name('inventory.export');
     Route::post('/inventory/lookup', [InventoryItemController::class, 'lookup'])->name('inventory.lookup');
     Route::post('/inventory', [InventoryItemController::class, 'store'])->name('inventory.store');
+    Route::get('/inventory/{inventoryItem}/amazon-offers', [InventoryItemController::class, 'amazonOffers'])->name('inventory.amazon-offers');
     Route::get('/inventory/{inventoryItem}', [InventoryItemController::class, 'show'])->name('inventory.show');
     Route::get('/inventory/{inventoryItem}/edit', [InventoryItemController::class, 'edit'])->name('inventory.edit');
     Route::put('/inventory/{inventoryItem}', [InventoryItemController::class, 'update'])->name('inventory.update');
