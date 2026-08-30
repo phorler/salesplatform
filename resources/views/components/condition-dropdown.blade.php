@@ -12,7 +12,7 @@
     </button>
 
     <div x-show="open" x-cloak @click.outside="open = false"
-         class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-96 overflow-auto divide-y divide-gray-100">
+         class="absolute z-20 mt-1 w-full min-w-[18rem] bg-white border border-gray-200 rounded-md shadow-lg max-h-96 overflow-auto divide-y divide-gray-100">
         <template x-for="c in Object.keys(guidelines)" :key="c">
             <button type="button" @click="condition = c; open = false"
                     class="block w-full text-left px-3 py-3 hover:bg-indigo-50"

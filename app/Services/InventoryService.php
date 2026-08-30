@@ -33,7 +33,7 @@ class InventoryService
             'suggested_price' => $attributes['suggested_price'] ?? null,
             'list_price' => $attributes['list_price'] ?? null,
             'currency' => $attributes['currency'] ?? 'GBP',
-            'status' => InventoryStatus::Draft,
+            'status' => $attributes['status'] ?? InventoryStatus::Draft,
             'location' => $attributes['location'] ?? null,
             'notes' => $attributes['notes'] ?? null,
         ]);

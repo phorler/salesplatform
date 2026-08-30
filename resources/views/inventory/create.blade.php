@@ -66,13 +66,39 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                        <div class="sm:col-span-2">
+                    {{-- Primary fields --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                        <div>
+                            <x-input-label for="list_price" :value="__('List price (£)')" />
+                            <x-text-input id="list_price" name="list_price" type="number" step="0.01" min="0" class="mt-1 block w-full"
+                                          x-ref="listPrice" x-model.number="listPrice" />
+                            <p class="mt-1 text-xs text-gray-600" x-show="suggested !== null">
+                                {{ __('Suggested:') }} £<span x-text="suggested"></span>
+                                <button type="button" class="ml-1 underline" @click="listPrice = suggested">{{ __('use') }}</button>
+                            </p>
+                        </div>
+
+                        <div>
                             <x-input-label :value="__('Condition')" />
                             <x-condition-dropdown />
                             <x-input-error :messages="$errors->get('condition')" class="mt-2" />
                         </div>
 
+                        <div>
+                            <x-input-label for="status" :value="__('Status')" />
+                            <select id="status" name="status" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                @foreach ($statuses as $s)
+                                    <option value="{{ $s->value }}" @selected(old('status', 'draft') === $s->value)>{{ $s->label() }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('status')" class="mt-2" />
+                        </div>
+                    </div>
+
+                    <hr class="my-6 border-gray-200">
+
+                    {{-- Secondary fields --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <x-input-label for="quantity" :value="__('Quantity')" />
                             <x-text-input id="quantity" name="quantity" type="number" min="1" value="1" class="mt-1 block w-full" />
@@ -88,31 +114,18 @@
                             <x-input-label for="reference_price" :value="__('Market price (£, optional)')" />
                             <x-text-input id="reference_price" name="reference_price" type="number" step="0.01" min="0" class="mt-1 block w-full"
                                           x-model.number="referencePrice" />
-                            <p class="mt-1 text-xs text-gray-500">
-                                {{ __('Used to suggest a price for this condition. Live Amazon pricing comes later.') }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <x-input-label for="list_price" :value="__('List price (£)')" />
-                            <x-text-input id="list_price" name="list_price" type="number" step="0.01" min="0" class="mt-1 block w-full"
-                                          x-model.number="listPrice" />
-                            <p class="mt-1 text-xs text-gray-600" x-show="suggested !== null">
-                                {{ __('Suggested:') }} £<span x-text="suggested"></span>
-                                <button type="button" class="ml-1 underline" @click="listPrice = suggested">{{ __('use') }}</button>
-                            </p>
                         </div>
 
                         <div>
                             <x-input-label for="location" :value="__('Location / shelf (optional)')" />
                             <x-text-input id="location" name="location" type="text" class="mt-1 block w-full" />
                         </div>
-                    </div>
 
-                    <div class="mt-4">
-                        <x-input-label for="condition_note" :value="__('Condition note (optional)')" />
-                        <x-text-input id="condition_note" name="condition_note" type="text" class="mt-1 block w-full"
-                                      placeholder="e.g. light shelf wear, name on inside cover" />
+                        <div class="sm:col-span-2">
+                            <x-input-label for="condition_note" :value="__('Condition note (optional)')" />
+                            <x-text-input id="condition_note" name="condition_note" type="text" class="mt-1 block w-full"
+                                          placeholder="e.g. light shelf wear, name on inside cover" />
+                        </div>
                     </div>
 
                     <div class="flex items-center justify-end mt-6">
@@ -185,6 +198,7 @@
                         const data = await res.json();
                         if (!res.ok) { this.error = data.message || 'Lookup failed.'; return; }
                         this.book = data; this.found = true;
+                        this.$nextTick(() => this.$refs.listPrice?.focus());
                     } catch (e) {
                         this.error = 'Network error during lookup.';
                     } finally {

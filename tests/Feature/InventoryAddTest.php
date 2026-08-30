@@ -78,6 +78,25 @@ class InventoryAddTest extends TestCase
         $this->assertSame('6.00', (string) $item->list_price);        // falls back to suggested
         $this->assertSame(self::ISBN, $item->product->isbn13);
         $this->assertNotEmpty($item->sku);
+        $this->assertSame(\App\Enums\InventoryStatus::Draft, $item->status); // default
+    }
+
+    public function test_store_honours_a_chosen_status(): void
+    {
+        $this->fakeOpenLibrary();
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('inventory.store'), [
+            'isbn' => self::ISBN,
+            'condition' => 'good',
+            'quantity' => 1,
+            'list_price' => 4.99,
+            'status' => 'listed',
+        ])->assertRedirect(route('inventory.index'));
+
+        $item = InventoryItem::where('user_id', $user->id)->firstOrFail();
+        $this->assertSame(\App\Enums\InventoryStatus::Listed, $item->status);
+        $this->assertSame('4.99', (string) $item->list_price);
     }
 
     public function test_isbn_lookup_is_cached_and_not_refetched(): void

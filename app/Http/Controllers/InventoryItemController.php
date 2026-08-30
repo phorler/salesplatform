@@ -110,6 +110,7 @@ class InventoryItemController extends Controller
     {
         return view('inventory.create', [
             'conditions' => Condition::cases(),
+            'statuses' => InventoryStatus::cases(),
             'multipliers' => $this->multipliersFor($request),
             'guidelines' => $this->conditionGuidelines(),
         ]);
@@ -165,7 +166,9 @@ class InventoryItemController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $this->validateItem($request, requireIsbn: true);
+        $validated = $this->validateItem($request, requireIsbn: true) + $request->validate([
+            'status' => ['nullable', 'string', 'in:'.$this->enumValues(InventoryStatus::cases())],
+        ]);
 
         $product = $this->openLibrary->lookup($validated['isbn']);
         if (! $product) {
@@ -184,6 +187,7 @@ class InventoryItemController extends Controller
             'list_price' => $validated['list_price'] ?? $suggested,
             'location' => $validated['location'] ?? null,
             'notes' => $validated['notes'] ?? null,
+            'status' => isset($validated['status']) ? InventoryStatus::from($validated['status']) : InventoryStatus::Draft,
         ]);
 
         return redirect()

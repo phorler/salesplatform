@@ -75,8 +75,15 @@
                       x-data="editItem(@js($guidelines), @js($multipliers))">
                     @csrf @method('PUT')
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="sm:col-span-2">
+                    {{-- Primary fields --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <x-input-label for="list_price" :value="__('List price (£)')" />
+                            <x-text-input id="list_price" name="list_price" type="number" step="0.01" min="0" class="mt-1 block w-full"
+                                          autofocus x-model.number="listPrice" />
+                        </div>
+
+                        <div>
                             <x-input-label :value="__('Condition')" />
                             <x-condition-dropdown />
                             <x-input-error :messages="$errors->get('condition')" class="mt-2" />
@@ -91,7 +98,12 @@
                             </select>
                             <x-input-error :messages="$errors->get('status')" class="mt-2" />
                         </div>
+                    </div>
 
+                    <hr class="my-6 border-gray-200">
+
+                    {{-- Secondary fields --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <x-input-label for="quantity" :value="__('Quantity')" />
                             <x-text-input id="quantity" name="quantity" type="number" min="1" class="mt-1 block w-full"
@@ -116,12 +128,6 @@
                         </div>
 
                         <div>
-                            <x-input-label for="list_price" :value="__('List price (£)')" />
-                            <x-text-input id="list_price" name="list_price" type="number" step="0.01" min="0" class="mt-1 block w-full"
-                                          x-model.number="listPrice" />
-                        </div>
-
-                        <div>
                             <x-input-label for="location" :value="__('Location / shelf')" />
                             <x-text-input id="location" name="location" type="text" class="mt-1 block w-full"
                                           :value="old('location', $item->location)" />
@@ -133,7 +139,7 @@
                                           :value="old('condition_note', $item->condition_note)" />
                         </div>
 
-                        <div class="sm:col-span-2">
+                        <div class="sm:col-span-3">
                             <x-input-label for="notes" :value="__('Notes')" />
                             <textarea id="notes" name="notes" rows="2"
                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">{{ old('notes', $item->notes) }}</textarea>
